@@ -1,12 +1,12 @@
 const express = require("express");
 const connectDB = require("./config/db");
-const User = require("./models/user");
 const { validateSignUpData } = require("./utils/validations");
 const bcrypt = require("bcrypt");
 const validator = require("validator");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
-
+const userAuth = require("./middleware/auth");
+const User = require("./models/user");
 const app = express();
 
 require("dotenv").config();
@@ -34,7 +34,9 @@ app.post("/login", async (req, res) => {
     }
 
     // Create token and set cookie BEFORE sending response
-    const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET);
+    const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1d",
+    });
     res.cookie("token", token);
     res.send("User logged in successfully!");
   } catch (err) {
@@ -63,20 +65,10 @@ app.post("/signup", async (req, res) => {
   }
 });
 
-app.get("/profile", async (req, res) => {
+app.get("/profile", userAuth, (req, res) => {
   try {
-    const token = req.cookies.token;
-
-    const verifyToken = await jwt.verify(token, process.env.JWT_SECRET);
-
-    const { _id } = verifyToken;
-
-    const users = await User.findById(_id);
-    if (!users) {
-      res.status(404).send("user not found");
-    } else {
-      res.send(users);
-    }
+    const user = req.user;
+    res.send(user);
   } catch {
     res.status(400).send("something wents worng");
   }
