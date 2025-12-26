@@ -5,21 +5,31 @@ const mongoose = require("mongoose");
 const userAuth = require("../middleware/auth");
 const { validateEditProfileData } = require("../utils/validations");
 
-router.get("/:id", userAuth, async (req, res) => {
-  const userId = req.params.id;
-
-  if (!mongoose.Types.ObjectId.isValid(userId)) {
-    return res.status(400).send("Invalid user id");
-  }
-
+// Fetch current user profile
+router.get("/me", userAuth, async (req, res) => {
   try {
-    const user = await User.findById(userId).select("-password -__v");
+    const user = req.user;
+    res.json(user);
+  } catch (err) {
+    res.status(500).send(`Error fetching user: ${err.message}`);
+  }
+});
+
+// Fetch other user Profile by ID
+router.get("/:id", userAuth, async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(id))
+      return res.status(400).send("Invalid id");
+    const user = await User.findById(id).select("-password -__v");
     if (!user) return res.status(404).send("User not found");
     res.json(user);
   } catch (err) {
     res.status(500).send(`Error fetching user: ${err.message}`);
   }
 });
+
+// Fetch all users
 
 router.get("/all", userAuth, async (req, res) => {
   try {
@@ -30,6 +40,7 @@ router.get("/all", userAuth, async (req, res) => {
   }
 });
 
+// Delete user by ID
 router.delete("/delete", userAuth, async (req, res) => {
   const userId = req.query.id;
   try {
@@ -41,6 +52,7 @@ router.delete("/delete", userAuth, async (req, res) => {
   }
 });
 
+// Update user profile
 router.put("/update", userAuth, async (req, res) => {
   try {
     if (!validateEditProfileData(req)) {
