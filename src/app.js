@@ -1,7 +1,6 @@
 const express = require("express");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/auth");
-const userRoutes = require("./routes/user");
 const profileRoutes = require("./routes/profile");
 const connectionRoutes = require("./routes/connection");
 const cookieParser = require("cookie-parser");
@@ -13,8 +12,8 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/connection", connectionRoutes);
 
 // Start server only after DB connection
 const startServer = async () => {
