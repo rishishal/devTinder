@@ -41,13 +41,13 @@ router.get("/all", userAuth, async (req, res) => {
 
 // Delete user by ID
 router.delete("/delete", userAuth, async (req, res) => {
-  const userId = req.query.id;
+  const userId = req.user._id;
   try {
     await User.findByIdAndDelete(userId);
 
     res.send("User Deleted successfully");
-  } catch {
-    res.status(400).send("something wents worng");
+  } catch (err) {
+    res.status(500).send(`Error deleting user: ${err.message}`);
   }
 });
 
