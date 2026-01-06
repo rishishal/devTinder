@@ -66,18 +66,18 @@ router.post("/respond/:requestId/:action", userAuth, async (req, res) => {
 
     const connectionResponse = await ConnectionRequest.findOne({
       _id: requestId,
-      resever: user._id,
+      receiver: user._id,
       status: "interested",
     });
 
     if (!connectionResponse) {
-      return res.send(404).json({ message: "Connection request not found" });
+      return res.status(404).json({ message: "Connection request not found" });
     }
 
     connectionResponse.status = action;
 
     const data = await connectionResponse.save();
-    res.send(200).json({ message: `Connection request ${action} ${data}` });
+    res.status(200).json({ message: `Connection request ${action}` });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
