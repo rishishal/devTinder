@@ -4,6 +4,8 @@ const { validateSignUpData } = require("../utils/validations");
 const validator = require("validator");
 const User = require("../models/user");
 
+const COOKIE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
+
 router.post("/login", async (req, res) => {
   try {
     const { emailId, password } = req.body;
@@ -26,11 +28,16 @@ router.post("/login", async (req, res) => {
     const token = user.getJWTToken();
 
     res.cookie("token", token, {
-      expires: new Date(Date.now() + 8 * 3600000), // 8 hours
+      expires: new Date(Date.now() + COOKIE_EXPIRY),
+      httpOnly: true,
     });
-    res.send("User logged in successfully!");
+    res.status(200).json({
+      message: "User logged in successfully!",
+      data: user,
+      accessToken: token,
+    });
   } catch (err) {
-    res.status(400).send(`ERROR: ${err.message}`);
+    res.status(400).json({ message: `ERROR: ${err.message}` });
   }
 });
 
@@ -47,19 +54,36 @@ router.post("/signup", async (req, res) => {
       password,
     });
     await user.save();
-    res.send("user created Successfully");
+
+    const token = user.getJWTToken();
+
+    res.cookie("token", token, {
+      expires: new Date(Date.now() + COOKIE_EXPIRY),
+      httpOnly: true,
+    });
+
+    res.status(201).json({
+      message: "User created successfully",
+      data: {
+        _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        emailId: user.emailId,
+      },
+      accessToken: token,
+    });
   } catch (err) {
     if (err.code === 11000) {
-      return res.status(400).json({ error: "Email already exists" });
+      return res.status(400).json({ message: "Email already exists" });
     }
 
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ message: err.message });
   }
 });
 
 router.post("/logout", (req, res) => {
   res.clearCookie("token");
-  res.send("User logged out successfully!");
+  res.status(200).json({ message: "User logged out successfully!" });
 });
 
 module.exports = router;

@@ -62,7 +62,26 @@ const userSchema = new mongoose.Schema(
       default: "This is about user",
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+
+    toJSON: {
+      transform: function (doc, ret) {
+        delete ret.password;
+        delete ret.passwordChangedAt;
+        delete ret.__v;
+        return ret;
+      },
+    },
+    toObject: {
+      transform: function (doc, ret) {
+        delete ret.password;
+        delete ret.passwordChangedAt;
+        delete ret.__v;
+        return ret;
+      },
+    },
+  },
 );
 
 // For CREATE & save()
@@ -99,7 +118,7 @@ userSchema.pre("findOneAndUpdate", async function () {
 
 userSchema.methods.getJWTToken = function () {
   return jwt.sign({ _id: this._id }, process.env.JWT_SECRET, {
-    expiresIn: "7d",
+    expiresIn: "1d",
   });
 };
 
