@@ -31,11 +31,7 @@ router.post("/login", async (req, res) => {
       expires: new Date(Date.now() + COOKIE_EXPIRY),
       httpOnly: true,
     });
-    res.status(200).json({
-      message: "User logged in successfully!",
-      data: user,
-      accessToken: token,
-    });
+    res.status(200).json({ message: "User logged in successfully!" });
   } catch (err) {
     res.status(400).json({ message: `ERROR: ${err.message}` });
   }
