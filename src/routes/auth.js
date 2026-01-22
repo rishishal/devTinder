@@ -51,22 +51,8 @@ router.post("/signup", async (req, res) => {
     });
     await user.save();
 
-    const token = user.getJWTToken();
-
-    res.cookie("token", token, {
-      expires: new Date(Date.now() + COOKIE_EXPIRY),
-      httpOnly: true,
-    });
-
     res.status(201).json({
       message: "User created successfully",
-      data: {
-        _id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        emailId: user.emailId,
-      },
-      accessToken: token,
     });
   } catch (err) {
     if (err.code === 11000) {
