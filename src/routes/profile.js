@@ -4,6 +4,21 @@ const User = require("../models/user");
 const mongoose = require("mongoose");
 const { userAuth } = require("../middleware/auth");
 const { filterAllowedFields } = require("../utils/validations");
+const {
+  upload,
+  deleteImage,
+  getPublicIdFromUrl,
+} = require("../config/cloudinary");
+
+// Wrapper to handle multer/cloudinary upload errors
+const handleUpload = (req, res, next) => {
+  upload.single("avatar")(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message || "Upload failed" });
+    }
+    next();
+  });
+};
 
 // Fetch current user profile
 router.get("/me", userAuth, async (req, res) => {
@@ -51,8 +66,8 @@ router.delete("/delete", userAuth, async (req, res) => {
   }
 });
 
-// Update user profile
-router.put("/update", userAuth, async (req, res) => {
+// Update user profile (JSON only - no file upload)
+router.patch("/update", userAuth, async (req, res) => {
   try {
     const allowedFields = [
       "firstName",
@@ -65,7 +80,7 @@ router.put("/update", userAuth, async (req, res) => {
     ];
 
     const isEditAllowed = Object.keys(req.body).every((field) =>
-      allowedFields.includes(field)
+      allowedFields.includes(field),
     );
 
     if (!isEditAllowed) {
@@ -83,11 +98,99 @@ router.put("/update", userAuth, async (req, res) => {
         returnDocument: "after",
         runValidators: true,
         context: "query",
-      }
+      },
     );
 
     res.json({
       message: "User updated successfully",
+      user: updatedUser,
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Upload avatar (Cloudinary)
+router.post("/avatar", userAuth, handleUpload, async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    // Cloudinary returns the URL in req.file.path
+    const avatarUrl = req.file.path;
+
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: req.user._id },
+      { $set: { avatar: avatarUrl } },
+      { returnDocument: "after" },
+    );
+
+    res.json({
+      message: "Avatar uploaded successfully",
+      avatar: avatarUrl,
+      user: updatedUser,
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Update avatar (replace existing - deletes old from Cloudinary)
+router.put("/avatar", userAuth, handleUpload, async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    // Get current user to delete old avatar
+    const currentUser = await User.findById(req.user._id);
+    if (currentUser?.avatar) {
+      const oldPublicId = getPublicIdFromUrl(currentUser.avatar);
+      if (oldPublicId) {
+        await deleteImage(oldPublicId);
+      }
+    }
+
+    // Cloudinary returns the URL in req.file.path
+    const avatarUrl = req.file.path;
+
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: req.user._id },
+      { $set: { avatar: avatarUrl } },
+      { returnDocument: "after" },
+    );
+
+    res.json({
+      message: "Avatar updated successfully",
+      avatar: avatarUrl,
+      user: updatedUser,
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Delete avatar (removes from Cloudinary)
+router.delete("/avatar", userAuth, async (req, res) => {
+  try {
+    // Get current user to delete avatar from Cloudinary
+    const currentUser = await User.findById(req.user._id);
+    if (currentUser?.avatar) {
+      const publicId = getPublicIdFromUrl(currentUser.avatar);
+      if (publicId) {
+        await deleteImage(publicId);
+      }
+    }
+
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: req.user._id },
+      { $set: { avatar: null } },
+      { returnDocument: "after" },
+    );
+
+    res.json({
+      message: "Avatar deleted successfully",
       user: updatedUser,
     });
   } catch (err) {
@@ -125,7 +228,7 @@ router.put("/change-password", userAuth, async (req, res) => {
       {
         runValidators: true,
         context: "query",
-      }
+      },
     );
 
     // Clear the token cookie to force re-login

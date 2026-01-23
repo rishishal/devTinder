@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/auth");
@@ -6,9 +8,8 @@ const connectionRoutes = require("./routes/connection");
 const userRoutes = require("./routes/user");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
+const path = require("path");
 const app = express();
-
-require("dotenv").config();
 
 app.use(
   cors({

@@ -61,6 +61,10 @@ const userSchema = new mongoose.Schema(
       maxlength: [250, "Bio must be less than 250 characters"],
       default: "This is about user",
     },
+    avatar: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,
